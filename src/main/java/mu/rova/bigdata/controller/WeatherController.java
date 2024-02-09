@@ -1,11 +1,12 @@
 package mu.rova.bigdata.controller;
 
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameter;
 import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,7 +18,6 @@ import mu.rova.bigdata.service.WeatherService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@CrossOrigin(origins = "https://www.freecodecamp.org")
 @RestController
 @RequestMapping("/api/weathers")
 public class WeatherController {
@@ -28,7 +28,7 @@ public class WeatherController {
 	@Autowired
 	private JobLauncher jobLauncher;
 
-	@Qualifier("importWeatherJob")
+	@Qualifier("importWeatherChunkJob")
 	@Autowired
 	private Job job;
 
@@ -44,7 +44,8 @@ public class WeatherController {
 
 	@GetMapping("job")
 	public void launchJob() throws Exception {
-		jobLauncher.run(job, new JobParameters());
+		JobParameters jobParameters = new JobParametersBuilder().addLong("BATCH_SIZE", 20L).toJobParameters();
+		jobLauncher.run(job, jobParameters);
 	}	
 	
 }

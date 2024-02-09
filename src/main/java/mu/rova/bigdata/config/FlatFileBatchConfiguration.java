@@ -4,7 +4,6 @@ import javax.sql.DataSource;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
@@ -14,65 +13,38 @@ import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourc
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
-import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import mu.rova.bigdata.domain.Weather;
 
-@EnableBatchProcessing(transactionManagerRef = "transactionManager")
 @Configuration
-public class BatchConfiguration {
+public class FlatFileBatchConfiguration {
 	
-	/**
-	 * Make spring batch parallel
-	 * @return
-	 */
-	@Bean
-	public TaskExecutor taskExecutor() {
-	    return new SimpleAsyncTaskExecutor("spring_batch");
-	}
-	
-	@Bean(name = "importWeatherJob")
-	public Job importWeatherJob(JobRepository jobRepository, 
-			Step step1) {
-		return new JobBuilder("importWeatherJob", jobRepository)
+	@Bean(name = "importWeatherFlatFileJob")
+	public Job importWeatherJob(@Qualifier("jobFlatFileRepository") JobRepository jobRepository, 
+			@Qualifier("step1WithFlatItemReader") Step step1) {
+		return new JobBuilder("importWeatherFlatFileJob", jobRepository)
 				.incrementer(new RunIdIncrementer())
 				.start(step1)
 				.build();
 	}
 	
-	@Bean(name = "jobRepository")
-    public JobRepository getJobRepository() throws Exception {
+	@Bean(name = "jobFlatFileRepository")
+    public JobRepository getJobRepository(PlatformTransactionManager transactionManager, DataSource dataSource) throws Exception {
         JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
-        factory.setTransactionManager(transactionManager());
-        factory.setDataSource(dataSource());
+        factory.setTransactionManager(transactionManager);
+        factory.setDataSource(dataSource);
         factory.afterPropertiesSet();
         return factory.getObject();
     }
-	
-	@Bean(name = "transactionManager")
-    public PlatformTransactionManager transactionManager() {
-        return new ResourcelessTransactionManager();
-    }
-    
-	@Bean
-    public DataSource dataSource() {
-     EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-     return builder.setType(EmbeddedDatabaseType.H2)
-           .addScript("classpath:org/springframework/batch/core/schema-drop-h2.sql")
-           .addScript("classpath:org/springframework/batch/core/schema-h2.sql")
-           .build();
-    }
 
-	@Bean
-	public Step step1(JobRepository jobRepository, 
+	@Bean(name = "step1WithFlatItemReader")
+	public Step step1WithFlatItemReader(@Qualifier("jobFlatFileRepository") JobRepository jobRepository, 
 			FlatFileItemReader<Weather> reader,
 			PlatformTransactionManager transactionManager,
 			JdbcBatchItemWriter<Weather> writer,

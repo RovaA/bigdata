@@ -5,7 +5,7 @@ import org.springframework.batch.item.ItemWriter;
 
 import mu.rova.bigdata.domain.Weather;
 
-public class WeatherItemWriter implements ItemWriter<Weather> {
+public class WeatherConsoleItemWriter implements ItemWriter<Weather> {
 
 	@Override
 	public void write(Chunk<? extends Weather> chunk) throws Exception {
